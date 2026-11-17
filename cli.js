@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
-// sebo na linha de comando: bun cli.js <link do RSS | export.csv> [--json]
+// livres na linha de comando: o menor preço de cada livro da wishlist.
+// bun cli.js <link do RSS | export.csv> [--json]
 
 import { lerRss, livrosDoCsv } from "./lib/goodreads.js";
 import { melhorPreco } from "./lib/estante.js";

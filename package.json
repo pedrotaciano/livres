@@ -1,14 +1,20 @@
 {
-  "name": "sebo",
-  "version": "0.1.0",
-  "description": "Sua wishlist do Goodreads com o menor preço da Estante Virtual.",
+  "name": "livres",
+  "version": "0.2.0",
+  "description": "sinco livres: onde ler cada livro — de graça, na biblioteca ou no sebo mais barato. Índice aberto de fontes.",
   "license": "MIT",
   "private": true,
   "type": "module",
-  "bin": { "sebo": "./cli.js" },
+  "bin": {
+    "livres": "./cli.js"
+  },
   "scripts": {
     "start": "bun server.js",
     "dev": "bun --hot server.js",
-    "test": "bun test"
+    "test": "bun test",
+    "moderar": "bun moderar.js"
+  },
+  "dependencies": {
+    "@vercel/blob": "^2.9.0"
   }
 }

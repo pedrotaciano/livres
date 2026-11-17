@@ -1,6 +1,48 @@
 import { describe, expect, test } from "bun:test";
 import { isbn13, livrosDoCsv, livrosDoRss, urlDoRss } from "../lib/goodreads.js";
-import { casa, estadoDaPagina, tituloPrincipal } from "../lib/estante.js";
+import { casa, estadoDaPagina } from "../lib/estante.js";
+import { validar } from "../lib/fontes.js";
+import { chave, CHAVE, sobrenome, tituloPrincipal } from "../lib/texto.js";
+
+describe("texto", () => {
+  test("sobrenome: ordem direta, invertida (Gutenberg) e sufixos", () => {
+    expect(sobrenome("Gabriel García Márquez")).toBe("marquez");
+    expect(sobrenome("Assis, Machado de")).toBe("assis");
+    expect(sobrenome("Martin Luther King, Jr.")).toBe("king");
+    expect(sobrenome("Paulo Leminski Filho")).toBe("leminski");
+  });
+
+  test("chave junta edições do mesmo livro e passa no formato aceito", () => {
+    expect(chave("Dom Casmurro", "Machado de Assis")).toBe("dom-casmurro--assis");
+    expect(chave("Dom Casmurro: edição comentada", "Assis, Machado de")).toBe("dom-casmurro--assis");
+    expect(CHAVE.test(chave("Grande Sertão: Veredas", "João Guimarães Rosa"))).toBe(true);
+  });
+});
+
+describe("fontes da comunidade", () => {
+  const base = { titulo: "Dom Casmurro", autor: "Machado de Assis", tipo: "gratis", url: "https://pt.wikisource.org/wiki/Dom_Casmurro" };
+
+  test("guarda só o necessário, com domínio e chave calculados no servidor", () => {
+    expect(validar({ ...base, nota: "  texto   integral ", chave: "outro--livro" })).toEqual({
+      chave: "dom-casmurro--assis",
+      titulo: "Dom Casmurro",
+      autor: "Machado de Assis",
+      url: "https://pt.wikisource.org/wiki/Dom_Casmurro",
+      dominio: "pt.wikisource.org",
+      tipo: "gratis",
+      nota: "texto integral",
+    });
+  });
+
+  test("recusa link que não é da web, com senha, tipo inventado ou livro sem título", () => {
+    expect(() => validar({ ...base, url: "javascript:alert(1)" })).toThrow("endereço da web");
+    expect(() => validar({ ...base, url: "data:text/html,oi" })).toThrow("endereço da web");
+    expect(() => validar({ ...base, url: "https://localhost/x" })).toThrow("endereço da web");
+    expect(() => validar({ ...base, url: "https://eu:senha@exemplo.com/" })).toThrow("usuário e senha");
+    expect(() => validar({ ...base, tipo: "torrent" })).toThrow("tipo");
+    expect(() => validar({ ...base, titulo: "  " })).toThrow("título");
+  });
+});
 
 describe("goodreads", () => {
   test("ISBN-10 vira ISBN-13 com o dígito certo", () => {

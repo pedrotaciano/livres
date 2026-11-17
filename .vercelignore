@@ -1,3 +1,5 @@
 server.js
 cli.js
+moderar.js
 test/
+.env*

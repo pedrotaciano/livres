@@ -1,0 +1,520 @@
+/* sebo: o sistema do sinco software (temas, pílulas, cartões de vidro, Fragment Mono nos metadados).
+   Os temas são os mesmos do site do laboratório e do sinco institute. */
+
+:root {
+  --margem: 24px;
+  --vao: 16px;
+  --col: calc((100vw - 2 * var(--margem) - 11 * var(--vao)) / 12);
+  --grot: "Helvetica Neue", "Inter", Helvetica, Arial, sans-serif;
+  --mono: "Fragment Mono", ui-monospace, monospace;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+[data-tema="cinza"] {
+  --fundo: #ecebe7;
+  --tinta: #1b1a16;
+  --cartao: rgb(250 249 246 / 0.66);
+  --tecla: rgb(27 26 22 / 0.42);
+  --tecla-texto: #f6f5f1;
+  color-scheme: light;
+}
+
+[data-tema="terra"] {
+  --fundo: #e3d9c6;
+  --tinta: #2b2219;
+  --cartao: rgb(247 240 228 / 0.66);
+  --tecla: rgb(43 34 25 / 0.42);
+  --tecla-texto: #efe7d8;
+  color-scheme: light;
+}
+
+[data-tema="musgo"] {
+  --fundo: #d8dccb;
+  --tinta: #1e2619;
+  --cartao: rgb(240 243 232 / 0.66);
+  --tecla: rgb(30 38 25 / 0.42);
+  --tecla-texto: #e9ecdf;
+  color-scheme: light;
+}
+
+[data-tema="argila"] {
+  --fundo: #e6cdbb;
+  --tinta: #3b1f15;
+  --cartao: rgb(248 236 228 / 0.66);
+  --tecla: rgb(59 31 21 / 0.42);
+  --tecla-texto: #f2e2d6;
+  color-scheme: light;
+}
+
+[data-tema="chumbo"] {
+  --fundo: #4b4d4f;
+  --tinta: #f1f0ea;
+  --cartao: rgb(255 255 255 / 0.09);
+  --tecla: rgb(255 255 255 / 0.2);
+  --tecla-texto: #f1f0ea;
+  color-scheme: dark;
+}
+
+[data-tema="tabaco"] {
+  --fundo: #3a2a1f;
+  --tinta: #f1e5d2;
+  --cartao: rgb(255 245 230 / 0.09);
+  --tecla: rgb(255 245 230 / 0.2);
+  --tecla-texto: #f1e5d2;
+  color-scheme: dark;
+}
+
+[data-tema="noite"] {
+  --fundo: #14130f;
+  --tinta: #ece7db;
+  --cartao: rgb(255 255 255 / 0.08);
+  --tecla: rgb(255 255 255 / 0.2);
+  --tecla-texto: #ece7db;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--fundo);
+  color: var(--tinta);
+  font: 14px/1.45 var(--grot);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 300ms ease, color 300ms ease;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+::selection {
+  background: var(--tinta);
+  color: var(--fundo);
+}
+
+/* topo */
+
+.marca {
+  position: fixed;
+  top: var(--margem);
+  left: var(--margem);
+  z-index: 5;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 24px;
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+.marca:hover {
+  text-decoration: none;
+}
+
+.selo {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 1.25em;
+  height: 1.25em;
+  margin-top: -0.02em;
+  border-radius: 4px;
+  background: var(--tinta);
+}
+
+.selo svg {
+  width: 72%;
+  fill: var(--fundo);
+}
+
+.pilula {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 34px;
+  padding: 0 7px 0 9px;
+  border: 0;
+  border-radius: 5px;
+  background: var(--cartao);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  color: inherit;
+  font: inherit;
+  font-size: 15px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 160ms var(--ease-out);
+}
+
+.pilula:active {
+  transform: scale(0.97);
+}
+
+.pilula:hover {
+  text-decoration: none;
+}
+
+kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: var(--tecla);
+  color: var(--tecla-texto);
+  font: 11px/1 var(--mono);
+}
+
+:focus-visible {
+  outline: 1px solid var(--tinta);
+  outline-offset: 2px;
+}
+
+.botao-tema {
+  position: fixed;
+  top: var(--margem);
+  right: var(--margem);
+  z-index: 5;
+}
+
+.botao-tema i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--tinta);
+}
+
+.aviso-tema {
+  position: fixed;
+  top: calc(var(--margem) + 42px);
+  right: var(--margem);
+  z-index: 5;
+  margin: 0;
+  font: 12px/1 var(--mono);
+  opacity: 0;
+  transition: opacity 220ms var(--ease-out);
+  pointer-events: none;
+}
+
+.aviso-tema.ativo {
+  opacity: 1;
+}
+
+/* miolo: começa na quarta coluna, como o About do sinco software */
+
+.miolo {
+  display: grid;
+  gap: 40px;
+  width: calc(var(--col) * 6 + var(--vao) * 5);
+  min-width: min(620px, 100%);
+  margin-left: calc(var(--margem) + (var(--col) + var(--vao)) * 3);
+  padding: 120px 0 140px;
+}
+
+h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 400;
+}
+
+.cartao {
+  display: grid;
+  gap: 14px;
+  padding: 18px 20px;
+  border-radius: 5px;
+  background: var(--cartao);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  font-size: 16px;
+  line-height: 1.32;
+}
+
+.cartao p {
+  margin: 0;
+}
+
+.fonte {
+  margin: 0;
+  font: 11px/1.4 var(--mono);
+  opacity: 0.6;
+}
+
+/* entrada */
+
+.entrada {
+  display: flex;
+  gap: 6px;
+}
+
+.entrada input {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 5px;
+  background: var(--cartao);
+  color: inherit;
+  font: 13px/1 var(--mono);
+}
+
+.entrada input::placeholder {
+  color: inherit;
+  opacity: 0.5;
+}
+
+.arquivo {
+  justify-self: start;
+  font-size: 14px;
+}
+
+.arquivo input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.arquivo:focus-within {
+  outline: 1px solid var(--tinta);
+  outline-offset: 2px;
+}
+
+details {
+  font-size: 14px;
+}
+
+summary {
+  font: 12px/1.4 var(--mono);
+  cursor: pointer;
+  opacity: 0.75;
+}
+
+details ol {
+  margin: 10px 0;
+  padding-left: 1.3em;
+}
+
+details li + li {
+  margin-top: 4px;
+}
+
+/* resultado */
+
+.resultado {
+  display: grid;
+  gap: 10px;
+}
+
+.resultado[hidden],
+.aviso[hidden],
+.total[hidden] {
+  display: none;
+}
+
+.barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.barra h2 {
+  margin: 0;
+}
+
+.ordem {
+  display: flex;
+  gap: 6px;
+}
+
+.ordem .pilula {
+  height: 28px;
+  padding: 0 9px;
+  font: 12px/1 var(--mono);
+  opacity: 0.55;
+}
+
+.ordem .pilula[aria-pressed="true"] {
+  opacity: 1;
+}
+
+.livros {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.livro {
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px 12px 12px;
+  animation: entra 360ms var(--ease-out) both;
+}
+
+@keyframes entra {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+
+.capa {
+  width: 40px;
+  height: 58px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--tecla);
+}
+
+.capa img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.capa img:not([src]) {
+  visibility: hidden;
+}
+
+.obra {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.titulo {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.autor,
+.meta {
+  font: 11px/1.35 var(--mono);
+  opacity: 0.6;
+}
+
+.preco {
+  display: grid;
+  gap: 4px;
+  justify-items: end;
+  max-width: 19em;
+  text-align: right;
+}
+
+.meta {
+  white-space: pre-line;
+}
+
+.valor {
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.livro[data-estado="buscando"] .valor {
+  font: 11px/1 var(--mono);
+  opacity: 0.5;
+  animation: pulsa 1.4s ease-in-out infinite;
+}
+
+@keyframes pulsa {
+  50% {
+    opacity: 0.2;
+  }
+}
+
+.livro[data-estado="nada"] .valor,
+.livro[data-estado="erro"] .valor {
+  font: 12px/1 var(--mono);
+  opacity: 0.6;
+}
+
+.aviso {
+  margin: 0;
+  font: 12px/1.4 var(--mono);
+}
+
+/* rodapé fixo, no lugar do contato do sinco software */
+
+.rodape {
+  position: fixed;
+  left: var(--margem);
+  bottom: var(--margem);
+  z-index: 5;
+  display: flex;
+  gap: 6px;
+}
+
+.total {
+  font-variant-numeric: tabular-nums;
+  cursor: default;
+}
+
+.total:active {
+  transform: none;
+}
+
+@media (max-width: 760px) {
+  :root {
+    --margem: 16px;
+  }
+
+  .marca {
+    font-size: 21px;
+  }
+
+  .miolo {
+    width: auto;
+    min-width: 0;
+    margin: 0 var(--margem);
+    padding: 84px 0 120px;
+  }
+
+  .livro {
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .capa {
+    width: 34px;
+    height: 50px;
+    grid-row: span 2;
+  }
+
+  .preco {
+    justify-items: start;
+    max-width: none;
+    text-align: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .livro,
+  .livro[data-estado="buscando"] .valor {
+    animation: none;
+  }
+}

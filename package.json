@@ -1,0 +1,14 @@
+{
+  "name": "sebo",
+  "version": "0.1.0",
+  "description": "Sua wishlist do Goodreads com o menor preço da Estante Virtual.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "bin": { "sebo": "./cli.js" },
+  "scripts": {
+    "start": "bun server.js",
+    "dev": "bun --hot server.js",
+    "test": "bun test"
+  }
+}

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-tema="tabaco">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>sebo · sinco software</title>
+    <meta name="description" content="Sua wishlist do Goodreads com o menor preço da Estante Virtual." />
+    <meta name="theme-color" content="#3a2a1f" />
+    <script>
+      // tema antes de pintar, para não piscar o tabaco ao recarregar noutro tema
+      (() => {
+        const tema = sessionStorage.getItem("sebo:tema");
+        if (["tabaco", "cinza", "terra", "musgo", "argila", "chumbo", "noite"].includes(tema)) document.documentElement.dataset.tema = tema;
+      })();
+    </script>
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fragment+Mono&family=Inter:wght@300;400&display=swap" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./main.js"></script>
+  </head>
+  <body>
+    <header>
+      <a class="marca" href="./" aria-label="sebo, início">
+        <span class="selo" aria-hidden="true"><svg viewBox="0 0 55.5366 22"><path d="M18.5277 0C19.434 0 20.3032 0.359264 20.9441 0.99874L25.1626 5.20813C26.6026 6.64503 28.934 6.64503 30.374 5.20813L34.5925 0.99874C35.2334 0.359264 36.1026 0 37.0089 0H55.5366V4.49598H38.6131C37.8746 4.49598 37.1664 4.78872 36.6442 5.30977L33.5713 8.37602C32.1269 9.81732 32.1269 12.1574 33.5713 13.5987L36.6695 16.6902C37.1917 17.2113 37.8999 17.504 38.6384 17.504H55.5366V22H37.0342C36.1421 22 35.2858 21.6519 34.648 21.0311L34.6178 21.0013L30.374 16.7666C28.934 15.3297 26.6026 15.3297 25.1626 16.7666L20.9188 21.0013L20.8886 21.0311C20.2507 21.6519 19.3945 22 18.5024 22H0V17.504H17.5692C17.878 17.504 18.1742 17.3816 18.3926 17.1637L21.9653 13.5987C23.4097 12.1574 23.4097 9.81732 21.9653 8.37602L18.8924 5.30977C18.3702 4.78872 17.662 4.49598 16.9235 4.49598H0V0H18.5277Z" /></svg></span>
+        <span>sebo</span>
+      </a>
+      <button class="pilula botao-tema" id="botao-tema" type="button" aria-label="Próximo tema (Shift+T: anterior)" aria-keyshortcuts="T Shift+T"><i></i><kbd>T</kbd></button>
+      <p class="aviso-tema" id="aviso-tema" aria-live="polite"></p>
+    </header>
+
+    <main class="miolo">
+      <section>
+        <h2>Wishlist</h2>
+        <div class="cartao">
+          <p>Sua estante <em>want-to-read</em> do Goodreads, com o menor preço da Estante Virtual ao lado de cada livro.</p>
+          <form class="entrada" id="entrada">
+            <input id="rss" name="rss" type="url" placeholder="link do RSS da estante" autocomplete="off" spellcheck="false" aria-label="Link do RSS da estante want-to-read" />
+            <button class="pilula" type="submit">Buscar <kbd>↵</kbd></button>
+          </form>
+          <p class="aviso" id="aviso" role="alert" hidden></p>
+          <label class="pilula arquivo">
+            ou o CSV do Goodreads <kbd>.csv</kbd>
+            <input id="csv" type="file" accept=".csv,text/csv" />
+          </label>
+          <details>
+            <summary>Onde acho o link?</summary>
+            <ol>
+              <li>No Goodreads, abra <em>My Books</em> e escolha a estante <em>Want to Read</em>.</li>
+              <li>Role até o fim da página e copie o link <em>RSS</em>; ele traz a chave da sua conta.</li>
+              <li>Ou exporte tudo em <em>Import and export → Export Library</em> e envie o CSV aqui.</li>
+            </ol>
+            <p class="fonte">O Goodreads fechou a API em 2020; o RSS e o CSV são as portas que sobraram.</p>
+          </details>
+        </div>
+      </section>
+
+      <section class="resultado" id="resultado" hidden>
+        <div class="barra">
+          <h2 id="contagem"></h2>
+          <div class="ordem" role="group" aria-label="Ordem">
+            <button class="pilula" type="button" data-ordem="wishlist" aria-pressed="true">wishlist</button>
+            <button class="pilula" type="button" data-ordem="preco" aria-pressed="false">preço</button>
+          </div>
+        </div>
+        <ol class="livros" id="livros"></ol>
+        <p class="fonte">Preço do anúncio mais barato do mesmo título e autor, em qualquer edição; sem frete.</p>
+      </section>
+    </main>
+
+    <div class="rodape">
+      <span class="pilula total" id="total" hidden></span>
+      <a class="pilula" href="https://software.sinco.institute/" target="_blank" rel="noopener">sinco software ↗</a>
+    </div>
+
+    <template id="modelo-livro">
+      <li class="livro cartao">
+        <span class="capa"><img alt="" loading="lazy" /></span>
+        <div class="obra">
+          <a class="titulo" target="_blank" rel="noopener"></a>
+          <span class="autor"></span>
+        </div>
+        <div class="preco">
+          <a class="valor" target="_blank" rel="noopener"></a>
+          <span class="meta"></span>
+        </div>
+      </li>
+    </template>
+  </body>
+</html>

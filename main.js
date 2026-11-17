@@ -129,7 +129,8 @@ for (const botao of document.querySelectorAll("[data-ordem]")) {
 
 // ---------- servidor ----------
 
-async function pedir(r) {
+async function pedir(resposta) {
+  const r = await resposta;
   const dados = await r.json().catch(() => ({ erro: `O servidor respondeu ${r.status}.` }));
   if (!r.ok) throw new Error(dados.erro);
   return dados;

@@ -4,13 +4,14 @@
 // software.sinco.institute/livres/.
 
 import { livrosDoCsv } from "./lib/goodreads.js";
+import { mesmaObra } from "./lib/texto.js";
 
 const raiz = document.documentElement;
 const $ = (id) => document.getElementById(id);
 const cor = (nome) => getComputedStyle(raiz).getPropertyValue(nome).trim();
 const GUARDA = "livres:wishlist";
 const PARALELO = 2;
-const TIPOS = { gratis: "grátis", biblioteca: "biblioteca", compra: "compra", audio: "audiolivro", outro: "outro" };
+const FORMATOS = { digital: "digital", fisico: "físico" };
 const MOTIVOS = ["pirataria", "link quebrado", "livro errado", "spam ou golpe", "outro"];
 
 // ---------- tema (os mesmos do sinco software; T avança, Shift+T volta) ----------
@@ -61,10 +62,11 @@ function el(tag, props = {}, ...filhos) {
 const linkSeguro = (url) => (/^https?:\/\//i.test(url) ? url : null);
 const externo = (url, ...filhos) => el("a", { href: linkSeguro(url), target: "_blank", rel: "noopener nofollow ugc" }, ...filhos);
 
-function linkDoLivro({ titulo, autor, isbn, capa }) {
+function linkDoLivro({ titulo, autor, isbn, capa, obra }) {
   const p = new URLSearchParams({ titulo, autor });
   if (isbn?.length) p.set("isbn", isbn.join(","));
   if (capa) p.set("capa", capa);
+  if (obra) p.set("obra", obra);
   return `?${p}`;
 }
 
@@ -87,42 +89,117 @@ function mostrarAviso(id, texto) {
 
 // ---------- uma fonte na lista ----------
 
-function itemFonte(fonte, livro) {
-  if (!fonte.id) {
-    // achada pelo livres (Open Library, Estante Virtual)
-    return el("li", {}, el("div", { classe: "fonte-linha" }, externo(fonte.url, fonte.fonte), el("span", { classe: "meta" }, fonte.nota)));
+// Toda fonte vira { nome, url, meta, preco, formato, comunidade? }: preco 0 é grátis, null é não informado.
+const precoTexto = (c) => (c === 0 ? "grátis" : c == null ? "—" : reais(c));
+const porPreco = (a, b) => (a.preco ?? Infinity) - (b.preco ?? Infinity);
+
+function itemFonte(f, livro) {
+  const extra = [];
+  if (f.comunidade) {
+    const denuncia = el(
+      "form",
+      { classe: "denuncia", hidden: "" },
+      el("select", { name: "motivo", "aria-label": "Motivo" }, ...MOTIVOS.map((m) => el("option", { value: m }, m))),
+      el("button", { classe: "pilula", type: "submit" }, "enviar"),
+    );
+    const botao = el("button", { classe: "denunciar", type: "button" }, "denunciar");
+    botao.addEventListener("click", () => {
+      denuncia.hidden = !denuncia.hidden;
+    });
+    denuncia.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        await postar("denuncia", { titulo: livro.titulo, autor: livro.autor, id: f.comunidade.id, motivo: denuncia.motivo.value });
+        denuncia.replaceWith(el("span", { classe: "meta" }, "Obrigado. Com 3 denúncias o link sai do ar até ser revisado."));
+        botao.remove();
+      } catch (err) {
+        denuncia.replaceWith(el("span", { classe: "meta" }, err.message));
+      }
+    });
+    extra.push(el("span", { classe: "meta" }, `indicado por alguém ${haQuanto(f.comunidade.criada)} · `, botao), denuncia);
   }
-  const denuncia = el(
-    "form",
-    { classe: "denuncia", hidden: "" },
-    el("select", { name: "motivo", "aria-label": "Motivo" }, ...MOTIVOS.map((m) => el("option", { value: m }, m))),
-    el("button", { classe: "pilula", type: "submit" }, "enviar"),
-  );
-  const botao = el("button", { classe: "denunciar", type: "button" }, "denunciar");
-  botao.addEventListener("click", () => {
-    denuncia.hidden = !denuncia.hidden;
-  });
-  denuncia.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    try {
-      await postar("denuncia", { titulo: livro.titulo, autor: livro.autor, id: fonte.id, motivo: denuncia.motivo.value });
-      denuncia.replaceWith(el("span", { classe: "meta" }, "Obrigado. Com 3 denúncias o link sai do ar até ser revisado."));
-      botao.remove();
-    } catch (err) {
-      denuncia.replaceWith(el("span", { classe: "meta" }, err.message));
-    }
-  });
   return el(
     "li",
-    {},
-    el("div", { classe: "fonte-linha" }, externo(fonte.url, fonte.dominio), fonte.nota && el("span", { classe: "meta" }, fonte.nota)),
-    el("div", { classe: "meta" }, `${TIPOS[fonte.tipo]} · indicado por alguém ${haQuanto(fonte.criada)} · `, botao),
-    denuncia,
+    { classe: "fonte-item" },
+    el("div", { classe: "fonte-info" }, externo(f.url, f.nome), ...f.meta.filter(Boolean).map((m) => el("span", { classe: "meta" }, m)), ...extra),
+    el("span", { classe: f.preco === 0 ? "fonte-preco gratis" : "fonte-preco", title: f.preco == null ? "preço não informado" : null }, precoTexto(f.preco)),
   );
 }
 
+const daComunidade = (f) => ({ nome: f.dominio, url: f.url, meta: [f.nota], preco: f.preco, formato: f.formato, comunidade: f });
+
 function preencherLista(id, itens, vazio) {
   $(id).replaceChildren(...(itens.length ? itens : [el("li", { classe: "vazio" }, vazio)]));
+}
+
+// ---------- vista: um livro · perfil (Open Library) ----------
+
+const IDIOMAS = { por: "português", eng: "inglês", spa: "espanhol", fre: "francês", ita: "italiano", ger: "alemão" };
+// marcas de acervo da Open Library que não dizem nada sobre o livro
+const ASSUNTO_RUIDO = /accessible book|protected daisy|in library|lending library|overdrive|large type|nyt:|open library|reading level|^\d/i;
+
+function limparSinopse(d) {
+  const s = typeof d === "string" ? d : d?.value || "";
+  return s
+    .split(/\r?\n\s*-{3,}|\r?\n\s*\*{0,2}contains|\(\[source\]/i)[0]
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/(\*{1,2}|_{1,2})(\S[^*_]*?\S|\S)\1/g, "$2")
+    .replace(/[ \t]+\n/g, "\n")
+    .trim();
+}
+
+async function perfilNaOpenLibrary(livro, obra) {
+  const u = new URL("https://openlibrary.org/search.json");
+  u.searchParams.set("title", livro.titulo);
+  u.searchParams.set("author", livro.autor);
+  u.searchParams.set("fields", "key,title,author_name,first_publish_year,number_of_pages_median,edition_count,ratings_average,ratings_count,language,subject,cover_i");
+  u.searchParams.set("limit", "10");
+  const { docs = [] } = await (await fetch(u, { signal: AbortSignal.timeout(12000) })).json();
+  const doc = docs.find((d) => d.key === `/works/${obra}`) || docs.find((d) => mesmaObra(livro, { nome: d.title, autor: (d.author_name || []).join("; ") }));
+  if (!doc) return null;
+  const obraJson = await fetch(`https://openlibrary.org${doc.key}.json`, { signal: AbortSignal.timeout(12000) })
+    .then((r) => r.json())
+    .catch(() => ({}));
+  return { ...doc, sinopse: limparSinopse(obraJson.description), assuntos: obraJson.subjects || doc.subject || [] };
+}
+
+function mostrarPerfil(p, capa) {
+  if (p.ratings_count) {
+    const media = p.ratings_average.toFixed(1).replace(".", ",");
+    $("livro-nota").textContent = `★ ${media} · ${p.ratings_count === 1 ? "1 avaliação" : `${p.ratings_count} avaliações`} na Open Library`;
+    $("livro-nota").hidden = false;
+  }
+  if (p.sinopse) {
+    const caixa = $("livro-sinopse");
+    caixa.querySelector("p").textContent = p.sinopse;
+    caixa.hidden = false;
+    const mais = caixa.querySelector("button");
+    const texto = caixa.querySelector("p");
+    mais.hidden = texto.scrollHeight <= texto.clientHeight + 2;
+    mais.onclick = () => {
+      caixa.classList.toggle("aberta");
+      mais.textContent = caixa.classList.contains("aberta") ? "menos" : "mais";
+    };
+  }
+  const idiomas = [...new Set((p.language || []).map((i) => IDIOMAS[i]).filter(Boolean))].join(", ");
+  const detalhes = [
+    p.first_publish_year && `primeira edição em ${p.first_publish_year}`,
+    p.number_of_pages_median && `${p.number_of_pages_median} páginas`,
+    p.edition_count && (p.edition_count === 1 ? "1 edição" : `${p.edition_count} edições`),
+    idiomas,
+  ].filter(Boolean);
+  if (detalhes.length) {
+    $("livro-detalhes").textContent = detalhes.join(" · ");
+    $("livro-detalhes").hidden = false;
+  }
+  const assuntos = [...new Set(p.assuntos.filter((a) => a.length < 40 && !ASSUNTO_RUIDO.test(a)))].slice(0, 6);
+  if (assuntos.length) {
+    $("livro-assuntos").replaceChildren(...assuntos.map((a) => el("li", { classe: "tag" }, a.toLowerCase())));
+    $("livro-assuntos").hidden = false;
+  }
+  $("livro-origem").replaceChildren("Dados e sinopse: ", externo(`https://openlibrary.org${p.key}`, "Open Library ↗"));
+  $("livro-origem").hidden = false;
+  if (!capa.getAttribute("src") && p.cover_i) capa.src = `https://covers.openlibrary.org/b/id/${p.cover_i}-L.jpg`;
 }
 
 // ---------- vista: um livro ----------
@@ -139,76 +216,84 @@ async function paginaDoLivro(params) {
   $("livro-autor").textContent = livro.autor;
   const capa = $("livro-capa");
   const idCapa = params.get("capa");
-  if (/^\d+$/.test(idCapa || "")) capa.src = `https://covers.openlibrary.org/b/id/${idCapa}-M.jpg`;
+  if (/^\d+$/.test(idCapa || "")) capa.src = `https://covers.openlibrary.org/b/id/${idCapa}-L.jpg`;
 
-  const comunidade = { gratis: [], compra: [], outros: [] };
-  let gratis = null;
-  let preco = null;
+  let gratis = null; // Open Library
+  let estante = null; // Estante Virtual
+  const comunidade = [];
 
   function desenhar() {
-    const auto = gratis === null ? [] : gratis.map((f) => itemFonte(f, livro));
-    const daComunidade = (lista) => lista.map((f) => itemFonte(f, livro));
-    const procurando = gratis === null && comunidade.gratis.length ? [el("li", { classe: "vazio" }, "procurando na Open Library")] : [];
-    preencherLista("lista-gratis", [...auto, ...daComunidade(comunidade.gratis), ...procurando], gratis === null ? "procurando" : "Nada grátis por enquanto. Se você conhece um link, indique abaixo.");
-
-    const compra = [];
-    if (preco?.melhor) {
-      const m = preco.melhor;
-      compra.push(
-        el(
-          "li",
-          {},
-          el("div", { classe: "fonte-linha" }, externo(m.url, `Estante Virtual · ${reais(m.preco)}`), el("span", { classe: "meta" }, [m.condicao.join("/"), m.idioma, m.ano, m.editora].filter(Boolean).join(" · "))),
-          el("div", { classe: "meta" }, `menor preço entre ${preco.anuncios} anúncios, sem frete · `, externo(preco.busca, "ver todos")),
-        ),
-      );
-      if (preco.edicao) compra.push(el("li", {}, el("div", { classe: "fonte-linha" }, externo(preco.edicao.url, `Estante Virtual · esta edição · ${reais(preco.edicao.preco)}`))));
-      if (!capa.src && m.capa) capa.src = m.capa;
-    } else if (preco) {
-      compra.push(el("li", {}, el("div", { classe: "fonte-linha" }, externo(preco.busca, "Estante Virtual"), el("span", { classe: "meta" }, preco.erro || "nenhum anúncio com este título e autor"))));
+    const fontes = [...(gratis || []), ...(estante || []), ...comunidade.map(daComunidade)];
+    const pendente = { digital: gratis === null, fisico: estante === null };
+    const atalhos = [];
+    for (const formato of ["digital", "fisico"]) {
+      const itens = fontes.filter((f) => f.formato === formato).sort(porPreco);
+      const linhas = itens.map((f) => itemFonte(f, livro));
+      if (pendente[formato] && itens.length) linhas.push(el("li", { classe: "vazio" }, "procurando mais"));
+      preencherLista(`lista-${formato}`, linhas, pendente[formato] ? "procurando" : "Nada por enquanto. Conhece um link? Indique abaixo.");
+      const menor = itens.find((f) => f.preco != null);
+      if (menor) atalhos.push(el("a", { classe: "pilula", href: "#onde" }, `${FORMATOS[formato]} · ${precoTexto(menor.preco)}`));
     }
-    preencherLista("lista-compra", [...compra, ...daComunidade(comunidade.compra)], "procurando");
-
-    $("secao-outros").hidden = !comunidade.outros.length;
-    preencherLista("lista-outros", daComunidade(comunidade.outros), "");
+    $("atalhos").replaceChildren(...atalhos);
     $("livro").classList.toggle("sem-capa", !capa.getAttribute("src"));
   }
 
-  function guardarFonte(f) {
-    (f.tipo === "gratis" ? comunidade.gratis : f.tipo === "compra" ? comunidade.compra : comunidade.outros).push(f);
-  }
-
   desenhar();
+  perfilNaOpenLibrary(livro, params.get("obra"))
+    .then((p) => p && mostrarPerfil(p, capa))
+    .catch(() => {})
+    .finally(desenhar);
   pedirGratis(livro)
-    .then((r) => (gratis = r.fontes))
+    .then((r) => (gratis = r.fontes.map((f) => ({ nome: f.fonte, url: f.url, meta: [f.nota], preco: 0, formato: "digital" }))))
     .catch(() => (gratis = []))
     .finally(desenhar);
   pedirPreco(livro)
-    .then((r) => (preco = r))
-    .catch((e) => (preco = { erro: e.message, busca: `https://www.estantevirtual.com.br/busca?q=${encodeURIComponent(`${livro.titulo} ${livro.autor}`)}` }))
+    .then((r) => {
+      if (!r.melhor) return (estante = [{ nome: "Estante Virtual", url: r.busca, meta: ["nenhum anúncio com este título e autor"], preco: null, formato: "fisico" }]);
+      const m = r.melhor;
+      estante = [
+        {
+          nome: "Estante Virtual",
+          url: m.url,
+          meta: [[m.condicao.join("/"), m.idioma, m.ano, m.editora].filter(Boolean).join(" · "), [`menor preço entre ${r.anuncios} anúncios, sem frete · `, externo(r.busca, "ver todos")]],
+          preco: m.preco,
+          formato: "fisico",
+        },
+      ];
+      if (r.edicao) estante.push({ nome: "Estante Virtual · esta edição", url: r.edicao.url, meta: [[r.edicao.idioma, r.edicao.ano, r.edicao.editora].filter(Boolean).join(" · ")], preco: r.edicao.preco, formato: "fisico" });
+      if (!capa.getAttribute("src") && m.capa) capa.src = m.capa;
+    })
+    .catch((e) => (estante = [{ nome: "Estante Virtual", url: `https://www.estantevirtual.com.br/busca?q=${encodeURIComponent(`${livro.titulo} ${livro.autor}`)}`, meta: [e.message], preco: null, formato: "fisico" }]))
     .finally(desenhar);
   api("fontes", { titulo: livro.titulo, autor: livro.autor })
-    .then((r) => r.fontes.forEach(guardarFonte))
+    .then((r) => comunidade.push(...r.fontes))
     .catch(() => {})
     .finally(desenhar);
 
   const form = $("indicar");
+  form.gratis.addEventListener("change", () => {
+    form.preco.disabled = form.gratis.checked;
+    if (form.gratis.checked) form.preco.value = "";
+  });
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const botao = form.querySelector("button");
+    const botao = form.querySelector('button[type="submit"]');
     botao.disabled = true;
     try {
       const { fonte } = await postar("fontes", {
         titulo: livro.titulo,
         autor: livro.autor,
         url: form.url.value,
-        tipo: form.tipo.value,
+        formato: form.formato.value,
+        preco: form.preco.value,
+        gratis: form.gratis.checked,
         nota: form.nota.value,
         site: form.site.value,
       });
-      guardarFonte(fonte);
+      comunidade.push(fonte);
       desenhar();
       form.url.value = "";
+      form.preco.value = "";
       form.nota.value = "";
       mostrarAviso("aviso-indicar", "Obrigado: o link já está na página.");
     } catch (err) {
@@ -236,7 +321,7 @@ async function buscarLivros(q) {
     mostrarAviso("aviso-busca", achados.length ? "" : "Nada com esse título ou autor na Open Library.");
     $("achados").replaceChildren(
       ...achados.map((d) => {
-        const livro = { titulo: d.title, autor: d.author_name[0], capa: d.cover_i };
+        const livro = { titulo: d.title, autor: d.author_name[0], capa: d.cover_i, obra: d.key.split("/").pop() };
         const gratis = ["public", "borrowable"].includes(d.ebook_access);
         return el(
           "li",
@@ -269,7 +354,7 @@ async function carregarRecentes() {
           "li",
           {},
           el("div", { classe: "fonte-linha" }, el("a", { href: linkDoLivro(f) }, f.titulo), el("span", { classe: "meta" }, f.autor)),
-          el("div", { classe: "meta" }, `${TIPOS[f.tipo]} · ${f.dominio} · ${haQuanto(f.criada)}`),
+          el("div", { classe: "meta" }, `${FORMATOS[f.formato]} · ${precoTexto(f.preco)} · ${f.dominio} · ${haQuanto(f.criada)}`),
         ),
       ),
     );

@@ -7,7 +7,7 @@
 //   bun moderar.js manter <id>     apaga só as denúncias: o link volta a aparecer
 
 import { del, list } from "@vercel/blob";
-import { LIMITE_DENUNCIAS } from "./lib/fontes.js";
+import { FORMATOS, LIMITE_DENUNCIAS } from "./lib/fontes.js";
 
 async function tudo(prefix) {
   const blobs = [];
@@ -22,8 +22,8 @@ async function tudo(prefix) {
 
 const ler = async (b) => (await fetch(b.url)).json();
 const fonteDe = async (id) => (await tudo("fontes/")).find((b) => b.pathname.endsWith(`/${id}.json`));
-const mostrar = (f) => `${f.id}  ${f.titulo} — ${f.autor}\n              ${TIPO[f.tipo] || f.tipo} · ${f.url}${f.nota ? `\n              “${f.nota}”` : ""}`;
-const TIPO = { gratis: "grátis", biblioteca: "biblioteca", compra: "compra", audio: "audiolivro", outro: "outro" };
+const preco = (c) => (c === 0 ? "grátis" : c == null ? "preço não informado" : (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
+const mostrar = (f) => `${f.id}  ${f.titulo} — ${f.autor}\n              ${FORMATOS[f.formato]} · ${preco(f.preco)} · ${f.url}${f.nota ? `\n              “${f.nota}”` : ""}`;
 
 const [comando = "denuncias", id] = process.argv.slice(2);
 

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { isbn13, livrosDoCsv, livrosDoRss, urlDoRss } from "../lib/goodreads.js";
 import { casa, estadoDaPagina } from "../lib/estante.js";
-import { validar } from "../lib/fontes.js";
+import { lerPreco, validar } from "../lib/fontes.js";
 import { chave, CHAVE, sobrenome, tituloPrincipal } from "../lib/texto.js";
 
 describe("texto", () => {
@@ -20,26 +20,39 @@ describe("texto", () => {
 });
 
 describe("fontes da comunidade", () => {
-  const base = { titulo: "Dom Casmurro", autor: "Machado de Assis", tipo: "gratis", url: "https://pt.wikisource.org/wiki/Dom_Casmurro" };
+  const base = { titulo: "Dom Casmurro", autor: "Machado de Assis", formato: "digital", gratis: true, url: "https://pt.wikisource.org/wiki/Dom_Casmurro" };
 
   test("guarda só o necessário, com domínio e chave calculados no servidor", () => {
-    expect(validar({ ...base, nota: "  texto   integral ", chave: "outro--livro" })).toEqual({
+    expect(validar({ ...base, nota: "  texto   integral ", chave: "outro--livro", preco: "99" })).toEqual({
       chave: "dom-casmurro--assis",
       titulo: "Dom Casmurro",
       autor: "Machado de Assis",
       url: "https://pt.wikisource.org/wiki/Dom_Casmurro",
       dominio: "pt.wikisource.org",
-      tipo: "gratis",
+      formato: "digital",
+      preco: 0,
       nota: "texto integral",
     });
   });
 
-  test("recusa link que não é da web, com senha, tipo inventado ou livro sem título", () => {
+  test("preço como as pessoas escrevem: vírgula, ponto, R$, milhar; vazio é não informado", () => {
+    expect(lerPreco("28,30")).toBe(2830);
+    expect(lerPreco("R$ 1.234,56")).toBe(123456);
+    expect(lerPreco("28.30")).toBe(2830);
+    expect(lerPreco("1.234")).toBe(123400);
+    expect(lerPreco("30")).toBe(3000);
+    expect(lerPreco("  ")).toBeNull();
+    expect(() => lerPreco("trinta")).toThrow("28,30");
+    expect(() => lerPreco("-5")).toThrow("28,30");
+    expect(validar({ ...base, gratis: false, formato: "fisico", preco: "" }).preco).toBeNull();
+  });
+
+  test("recusa link que não é da web, com senha, formato inventado ou livro sem título", () => {
     expect(() => validar({ ...base, url: "javascript:alert(1)" })).toThrow("endereço da web");
     expect(() => validar({ ...base, url: "data:text/html,oi" })).toThrow("endereço da web");
     expect(() => validar({ ...base, url: "https://localhost/x" })).toThrow("endereço da web");
     expect(() => validar({ ...base, url: "https://eu:senha@exemplo.com/" })).toThrow("usuário e senha");
-    expect(() => validar({ ...base, tipo: "torrent" })).toThrow("tipo");
+    expect(() => validar({ ...base, formato: "torrent" })).toThrow("digital ou físico");
     expect(() => validar({ ...base, titulo: "  " })).toThrow("título");
   });
 });

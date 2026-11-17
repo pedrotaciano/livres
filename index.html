@@ -92,27 +92,38 @@
       <!-- um livro -->
       <article class="vista" id="livro" hidden>
         <a class="voltar" href="./">← livres</a>
-        <header class="ficha">
-          <span class="capa grande"><img id="livro-capa" alt="" /></span>
-          <div>
+
+        <div class="perfil">
+          <aside class="perfil-lado">
+            <span class="capa grande"><img id="livro-capa" alt="" /></span>
+            <div class="atalhos" id="atalhos"></div>
+          </aside>
+          <div class="perfil-miolo">
             <h1 id="livro-titulo"></h1>
-            <p class="autor" id="livro-autor"></p>
+            <p class="perfil-autor" id="livro-autor"></p>
+            <p class="perfil-nota" id="livro-nota" hidden></p>
+            <div class="sinopse" id="livro-sinopse" hidden>
+              <p></p>
+              <button class="denunciar" type="button" hidden>mais</button>
+            </div>
+            <p class="perfil-detalhes" id="livro-detalhes" hidden></p>
+            <ul class="assuntos" id="livro-assuntos" hidden></ul>
+            <p class="fonte" id="livro-origem" hidden></p>
           </div>
-        </header>
+        </div>
 
-        <section>
-          <h2>Ler de graça</h2>
-          <ol class="cartao lista" id="lista-gratis"><li class="vazio">procurando</li></ol>
-        </section>
-
-        <section>
-          <h2>Comprar</h2>
-          <ol class="cartao lista" id="lista-compra"><li class="vazio">procurando</li></ol>
-        </section>
-
-        <section id="secao-outros" hidden>
-          <h2>Bibliotecas, audiolivros e outros</h2>
-          <ol class="cartao lista" id="lista-outros"></ol>
+        <section id="onde">
+          <h2>Onde ler</h2>
+          <div class="formatos">
+            <section>
+              <h3>Digital</h3>
+              <ol class="cartao lista" id="lista-digital"><li class="vazio">procurando</li></ol>
+            </section>
+            <section>
+              <h3>Físico</h3>
+              <ol class="cartao lista" id="lista-fisico"><li class="vazio">procurando</li></ol>
+            </section>
+          </div>
         </section>
 
         <section>
@@ -121,15 +132,14 @@
             <p>Sabe onde ler, ouvir ou comprar este livro? Cole o link. Ele aparece aqui para todo mundo, marcado como indicação de alguém.</p>
             <input name="url" type="url" required maxlength="500" placeholder="https://…" aria-label="Link" />
             <div class="linha">
-              <select name="tipo" required aria-label="Tipo">
-                <option value="gratis">grátis</option>
-                <option value="biblioteca">biblioteca</option>
-                <option value="compra">compra</option>
-                <option value="audio">audiolivro</option>
-                <option value="outro">outro</option>
-              </select>
-              <input name="nota" type="text" maxlength="140" placeholder="nota (opcional): edição, formato, idioma" aria-label="Nota" />
+              <div class="segmento" role="radiogroup" aria-label="Formato">
+                <label><input type="radio" name="formato" value="digital" checked /> digital</label>
+                <label><input type="radio" name="formato" value="fisico" /> físico</label>
+              </div>
+              <input class="campo-preco" name="preco" type="text" inputmode="decimal" maxlength="12" placeholder="R$ 0,00" aria-label="Preço em reais" />
+              <label class="marcar"><input type="checkbox" name="gratis" /> grátis</label>
             </div>
+            <input name="nota" type="text" maxlength="140" placeholder="nota (opcional): edição, idioma, ebook, audiolivro, biblioteca…" aria-label="Nota" />
             <!-- só robô preenche -->
             <input class="oculto" name="site" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" />
             <div class="linha">

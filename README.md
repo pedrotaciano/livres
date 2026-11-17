@@ -5,7 +5,7 @@ Onde ler cada livro: de graça, na biblioteca ou no sebo mais barato. Um produto
 Online em **[software.sinco.institute/livres](https://software.sinco.institute/livres/)**.
 
 - **Busca** de qualquer livro pelo catálogo da Open Library.
-- **Página do livro** com três listas: *ler de graça* (Open Library + comunidade), *comprar* (menor preço da Estante Virtual + comunidade) e *bibliotecas, audiolivros e outros* (comunidade).
+- **Página do livro** no jeito do Goodreads: capa, autor, nota, sinopse, edições, páginas e assuntos (da Open Library), e **onde ler** em duas listas, *digital* e *físico*. Cada fonte mostra o preço ou "grátis", da mais barata para a mais cara; ao lado da capa, o menor preço de cada formato.
 - **Fontes da comunidade**: qualquer pessoa indica um link para um livro, sem conta. O livres é um índice: não hospeda arquivo nenhum.
 - **Wishlist** do Goodreads (RSS ou CSV) com o menor preço e o que dá para ler de graça, livro a livro. Era o *sebo*, a primeira versão.
 
@@ -22,9 +22,9 @@ bun moderar.js                                   # denúncias (ver "Moderação"
 
 | lista | fonte | como |
 | --- | --- | --- |
-| busca | Open Library | direto do navegador (`search.json` aceita CORS) |
-| ler de graça | Open Library | `ebook_access` *public* (leitura aberta) ou *borrowable* (empréstimo digital grátis com conta); cache de 24 h |
-| comprar | Estante Virtual | o JSON embutido na página de busca; três buscas por livro; cache de 6 h |
+| busca, perfil do livro | Open Library | direto do navegador (`search.json` e `/works/…json` aceitam CORS) |
+| digital | Open Library | `ebook_access` *public* (leitura aberta) ou *borrowable* (empréstimo digital grátis com conta), as duas grátis; cache de 24 h |
+| físico | Estante Virtual | o JSON embutido na página de busca; três buscas por livro; cache de 6 h |
 | tudo | comunidade | `fontes/<chave>/<id>.json` no Vercel Blob |
 
 Um livro é reconhecido em todas as fontes pelo título principal (sem subtítulo nem série) e pelo sobrenome do autor: `dom-casmurro--assis`. Um anúncio ou um acervo só conta se o nome **começa** pelo título (ou o traz entre parênteses) e o autor contém o sobrenome; *O Messias de Duna* não é *Duna*. Traduções com outro título são outro livro, de propósito.
@@ -40,7 +40,7 @@ O Goodreads fechou a API em 2020. Sobram duas portas:
 
 ## Fontes da comunidade e moderação
 
-Qualquer pessoa indica um link com tipo (*grátis, biblioteca, compra, audiolivro, outro*) e uma nota de até 140 caracteres. O servidor aceita só `http(s)` com domínio de verdade, sem usuário e senha; calcula a chave do livro ele mesmo; recusa o mesmo link duas vezes no mesmo livro; um campo escondido barra robôs simples. Cada fonte é um arquivo que nunca é reescrito, e cada denúncia é outro, então duas pessoas escrevendo ao mesmo tempo não se atropelam.
+Qualquer pessoa indica um link dizendo se é **digital** (ebook, leitura online, audiolivro) ou **físico** (sebo, livraria, biblioteca), o **preço** (ou *grátis*; vazio é "não informado") e uma nota de até 140 caracteres. O preço aceita como as pessoas escrevem: `28,30`, `R$ 1.234,56`, `28.30`. O servidor aceita só `http(s)` com domínio de verdade, sem usuário e senha; calcula a chave do livro ele mesmo; recusa o mesmo link duas vezes no mesmo livro; um campo escondido barra robôs simples. Cada fonte é um arquivo que nunca é reescrito, e cada denúncia é outro, então duas pessoas escrevendo ao mesmo tempo não se atropelam.
 
 Na página, cada link da comunidade aparece com o domínio, "indicado por alguém" e **denunciar** (pirataria, link quebrado, livro errado, spam ou golpe, outro). **Com 3 denúncias o link some** até alguém revisar:
 

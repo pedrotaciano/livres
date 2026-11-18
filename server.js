@@ -7,11 +7,11 @@ import * as estante from "./api/estante.js";
 import * as fontes from "./api/fontes.js";
 import * as gratis from "./api/gratis.js";
 import * as preco from "./api/preco.js";
-import * as recentes from "./api/recentes.js";
+import * as vitrine from "./api/vitrine.js";
 
 // 4190 (ManageSieve) está na lista de portas que os navegadores recusam; 4192 não.
 const PORTA = Number(process.env.PORT) || 4192;
-const API = { denuncia, estante, fontes, gratis, preco, recentes };
+const API = { denuncia, estante, fontes, gratis, preco, vitrine };
 // main.js, não app.js: a Vercel trata um app.js na raiz como servidor Express
 const ARQUIVOS = new Set(["/index.html", "/main.js", "/styles.css", "/icon.svg", "/lib/goodreads.js", "/lib/texto.js"]);
 

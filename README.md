@@ -4,7 +4,7 @@ Onde ler cada livro: de graça, na biblioteca ou no sebo mais barato. Um produto
 
 Online em **[software.sinco.institute/livres](https://software.sinco.institute/livres/)**.
 
-- **Busca** de qualquer livro pelo catálogo da Open Library.
+- **Início**: "quero ler ___" com a estante viva atrás. A lacuna é a busca (catálogo da Open Library) e, parada, gira por livros reais com a resposta do livres embaixo ("digital · grátis"); atrás, as capas desfocadas dos livros indicados há pouco e dos que dá para ler de graça, e passar o mouse traz um para o foco.
 - **Página do livro** no jeito do Goodreads: capa, autor, nota, sinopse, edições, páginas e assuntos (da Open Library), e **onde ler** em duas listas, *digital* e *físico*. Cada fonte mostra o preço ou "grátis", da mais barata para a mais cara; ao lado da capa, o menor preço de cada formato.
 - **Fontes da comunidade**: qualquer pessoa indica um link para um livro, sem conta. O livres é um índice: não hospeda arquivo nenhum.
 - **Wishlist** do Goodreads (RSS ou CSV) com o menor preço e o que dá para ler de graça, livro a livro. Era o *sebo*, a primeira versão.
@@ -23,6 +23,7 @@ bun moderar.js                                   # denúncias (ver "Moderação"
 | lista | fonte | como |
 | --- | --- | --- |
 | busca, perfil do livro | Open Library | direto do navegador (`search.json` e `/works/…json` aceitam CORS) |
+| estante viva | comunidade + Open Library | `GET /api/vitrine`: indicações recentes com capa e livros com leitura aberta em edição portuguesa, publicados antes de 1950; cache de 15 min |
 | digital | Open Library | `ebook_access` *public* (leitura aberta) ou *borrowable* (empréstimo digital grátis com conta), as duas grátis; cache de 24 h |
 | físico | Estante Virtual | o JSON embutido na página de busca; três buscas por livro; cache de 6 h |
 | tudo | comunidade | `fontes/<chave>/<id>.json` no Vercel Blob |
@@ -82,7 +83,9 @@ npx vercel deploy --prod --scope sincos-projects-b8945148
 | `lib/estante.js` | Estante Virtual: busca, anúncio, menor preço |
 | `lib/gratis.js` | Open Library |
 | `lib/fontes.js` | fontes da comunidade e denúncias no Blob |
-| `api/*.js` | funções da Vercel: `preco`, `gratis`, `fontes`, `denuncia`, `recentes`, `estante` |
+| `lib/vitrine.js` | a estante viva do início |
+| `DESIGN.md` | o brief de design: produto, voz, clima, marca, decisões |
+| `api/*.js` | funções da Vercel: `preco`, `gratis`, `fontes`, `denuncia`, `vitrine`, `estante` |
 | `server.js` | `Bun.serve` local com as mesmas funções |
 | `cli.js`, `moderar.js` | terminal: preços da wishlist; moderação |
 | `test/` | `bun test` |

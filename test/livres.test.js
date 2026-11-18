@@ -23,7 +23,7 @@ describe("fontes da comunidade", () => {
   const base = { titulo: "Dom Casmurro", autor: "Machado de Assis", formato: "digital", gratis: true, url: "https://pt.wikisource.org/wiki/Dom_Casmurro" };
 
   test("guarda só o necessário, com domínio e chave calculados no servidor", () => {
-    expect(validar({ ...base, nota: "  texto   integral ", chave: "outro--livro", preco: "99" })).toEqual({
+    expect(validar({ ...base, nota: "  texto   integral ", chave: "outro--livro", preco: "99", capa: "647501", obra: "OL1003040W" })).toEqual({
       chave: "dom-casmurro--assis",
       titulo: "Dom Casmurro",
       autor: "Machado de Assis",
@@ -32,7 +32,14 @@ describe("fontes da comunidade", () => {
       formato: "digital",
       preco: 0,
       nota: "texto integral",
+      capa: 647501,
+      obra: "OL1003040W",
     });
+  });
+
+  test("capa e obra que não são da Open Library ficam de fora", () => {
+    const f = validar({ ...base, capa: "https://exemplo.com/x.jpg", obra: "../../etc" });
+    expect([f.capa, f.obra]).toEqual([null, null]);
   });
 
   test("preço como as pessoas escrevem: vírgula, ponto, R$, milhar; vazio é não informado", () => {

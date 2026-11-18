@@ -30,22 +30,23 @@
       <p class="aviso-tema" id="aviso-tema" aria-live="polite"></p>
     </header>
 
-    <main class="miolo">
-      <!-- início -->
-      <div class="vista" id="inicio" hidden>
-        <section>
-          <h2>Buscar</h2>
-          <div class="cartao">
-            <p>Onde ler cada livro: de graça, na biblioteca ou no sebo mais barato. As fontes vêm da Open Library, da Estante Virtual e de quem usa o livres.</p>
-            <form class="entrada" id="busca" role="search">
-              <input id="q" name="q" type="search" placeholder="título ou autor" autocomplete="off" aria-label="Título ou autor" />
-              <button class="pilula" type="submit">Buscar <kbd>↵</kbd></button>
-            </form>
-            <p class="aviso" id="aviso-busca" role="status" hidden></p>
-            <ol class="achados" id="achados" hidden></ol>
-          </div>
-        </section>
+    <!-- início: "quero ler ___" na frente, a estante viva atrás -->
+    <section class="heroi" id="heroi" hidden>
+      <div class="campo" id="campo"></div>
+      <form class="heroi-miolo" id="busca" role="search">
+        <p class="pergunta">
+          <label for="q">quero ler</label>
+          <input class="lacuna" id="q" name="q" type="search" autocomplete="off" spellcheck="false" placeholder="um título ou um autor" aria-describedby="dica" />
+        </p>
+        <div class="resposta" id="resposta"></div>
+        <p class="dica" id="dica">escreva um título ou um autor e aperte <kbd>↵</kbd> · <kbd>/</kbd> volta para cá</p>
+        <p class="aviso" id="aviso-busca" role="status" hidden></p>
+        <ol class="achados cartao" id="achados" hidden></ol>
+      </form>
+    </section>
 
+    <main class="miolo">
+      <div class="vista" id="inicio" hidden>
         <section>
           <h2>Wishlist</h2>
           <div class="cartao">
@@ -81,11 +82,6 @@
           </div>
           <ol class="livros" id="livros"></ol>
           <p class="fonte">Preço do anúncio mais barato do mesmo título e autor, em qualquer edição; sem frete.</p>
-        </section>
-
-        <section id="secao-recentes" hidden>
-          <h2>Indicadas agora</h2>
-          <ol class="cartao lista" id="recentes"></ol>
         </section>
       </div>
 

@@ -39,6 +39,10 @@ $("botao-tema").addEventListener("click", (e) => passarTema(e.shiftKey ? -1 : 1)
 addEventListener("keydown", (e) => {
   if (e.target.closest("input, textarea, select") || e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.key.toLowerCase() === "t") passarTema(e.shiftKey ? -1 : 1);
+  if (e.key === "/" && !$("heroi").hidden) {
+    e.preventDefault();
+    $("q").focus();
+  }
 });
 
 // ---------- utilidades ----------
@@ -217,6 +221,8 @@ async function paginaDoLivro(params) {
   const capa = $("livro-capa");
   const idCapa = params.get("capa");
   if (/^\d+$/.test(idCapa || "")) capa.src = `https://covers.openlibrary.org/b/id/${idCapa}-L.jpg`;
+  // capa e obra da Open Library: vão junto com cada indicação, para a estante viva do início
+  const openLibrary = { capa: /^\d+$/.test(idCapa || "") ? idCapa : null, obra: params.get("obra") };
 
   let gratis = null; // Open Library
   let estante = null; // Estante Virtual
@@ -240,7 +246,12 @@ async function paginaDoLivro(params) {
 
   desenhar();
   perfilNaOpenLibrary(livro, params.get("obra"))
-    .then((p) => p && mostrarPerfil(p, capa))
+    .then((p) => {
+      if (!p) return;
+      mostrarPerfil(p, capa);
+      openLibrary.capa ||= p.cover_i || null;
+      openLibrary.obra ||= p.key.split("/").pop();
+    })
     .catch(() => {})
     .finally(desenhar);
   pedirGratis(livro)
@@ -288,6 +299,8 @@ async function paginaDoLivro(params) {
         preco: form.preco.value,
         gratis: form.gratis.checked,
         nota: form.nota.value,
+        capa: openLibrary.capa,
+        obra: openLibrary.obra,
         site: form.site.value,
       });
       comunidade.push(fonte);
@@ -306,8 +319,13 @@ async function paginaDoLivro(params) {
 
 // ---------- vista: início · busca ----------
 
+let ultimaBusca = "";
+
 async function buscarLivros(q) {
-  mostrarAviso("aviso-busca", "procurando");
+  ultimaBusca = q;
+  pararDeGirar();
+  mostrarAviso("aviso-busca", "procurando na Open Library");
+  const demorou = setTimeout(() => q === ultimaBusca && mostrarAviso("aviso-busca", "ainda procurando na Open Library…"), 2000);
   $("achados").hidden = true;
   try {
     const u = new URL("https://openlibrary.org/search.json");
@@ -317,8 +335,9 @@ async function buscarLivros(q) {
     const r = await fetch(u, { signal: AbortSignal.timeout(12000) });
     if (!r.ok) throw new Error();
     const { docs } = await r.json();
+    if (q !== ultimaBusca) return;
     const achados = docs.filter((d) => d.title && d.author_name?.length);
-    mostrarAviso("aviso-busca", achados.length ? "" : "Nada com esse título ou autor na Open Library.");
+    mostrarAviso("aviso-busca", achados.length ? "" : `Nada com “${q}” na Open Library.`);
     $("achados").replaceChildren(
       ...achados.map((d) => {
         const livro = { titulo: d.title, autor: d.author_name[0], capa: d.cover_i, obra: d.key.split("/").pop() };
@@ -338,30 +357,84 @@ async function buscarLivros(q) {
     );
     $("achados").hidden = !achados.length;
   } catch {
-    mostrarAviso("aviso-busca", "A Open Library não respondeu. Tente de novo em instantes.");
+    if (q !== ultimaBusca) return;
+    const tentar = el("button", { classe: "denunciar", type: "button" }, "tentar de novo");
+    tentar.addEventListener("click", () => buscarLivros(q));
+    $("aviso-busca").replaceChildren("A Open Library não respondeu. ", tentar);
+    $("aviso-busca").hidden = false;
+  } finally {
+    clearTimeout(demorou);
   }
 }
 
-// ---------- vista: início · indicadas agora ----------
+// ---------- vista: início · a estante viva ----------
+// Atrás do "quero ler ___", as capas dos livros indicados há pouco e dos que dá para ler de graça,
+// desfocadas: passar o mouse traz um para o foco. A lacuna mostra um deles por vez, com a resposta
+// do livres embaixo; para de girar quando a pessoa clica ou escreve.
 
-async function carregarRecentes() {
+const CAPAS_NO_CAMPO = 84; // o bastante para encher 1440×900; os livros se repetem
+const reduzMovimento = matchMedia("(prefers-reduced-motion: reduce)");
+let vitrine = [];
+let giro = null;
+let vez = 0;
+
+function desenharCampo() {
+  const n = vitrine.length;
+  $("campo").replaceChildren(
+    ...Array.from({ length: CAPAS_NO_CAMPO }, (_, i) => {
+      if (!n) return el("span", { classe: "vaga" });
+      // passo 7: a mesma ordem a cada visita, sem o mesmo livro lado a lado
+      const l = vitrine[(i * 7) % n];
+      return el(
+        "a",
+        { href: linkDoLivro(l), tabindex: "-1" },
+        el("img", { src: `https://covers.openlibrary.org/b/id/${l.capa}-M.jpg`, alt: "" }),
+        el("span", { classe: "rotulo" }, l.titulo, el("br"), l.resposta.join(" · ")),
+      );
+    }),
+  );
+}
+
+// Na lacuna só entram títulos que cabem numa linha da frase grande; o campo mostra todos.
+const CABE_NA_LACUNA = 28;
+const naLacuna = () => vitrine.filter((l) => l.titulo.length <= CABE_NA_LACUNA);
+const livroDaVez = () => naLacuna()[vez % naLacuna().length];
+
+function mostrarVez() {
+  const l = livroDaVez();
+  $("q").placeholder = l.titulo;
+  $("resposta").replaceChildren(...[...l.resposta, l.autor].map((r) => el("a", { classe: "pilula", href: linkDoLivro(l) }, r)));
+}
+
+function girar() {
+  if (!naLacuna().length) return;
+  mostrarVez();
+  if (reduzMovimento.matches) return;
+  giro = setInterval(() => {
+    $("heroi").classList.add("trocando");
+    setTimeout(() => {
+      vez++;
+      mostrarVez();
+      $("heroi").classList.remove("trocando");
+    }, 280);
+  }, 3200);
+}
+
+function pararDeGirar() {
+  clearInterval(giro);
+  giro = null;
+  $("heroi").classList.remove("trocando");
+}
+
+async function carregarVitrine() {
+  desenharCampo(); // vagas vazias enquanto carrega: o campo não pula quando as capas chegam
   try {
-    const { fontes } = await api("recentes", {});
-    if (!fontes.length) return;
-    $("recentes").replaceChildren(
-      ...fontes.map((f) =>
-        el(
-          "li",
-          {},
-          el("div", { classe: "fonte-linha" }, el("a", { href: linkDoLivro(f) }, f.titulo), el("span", { classe: "meta" }, f.autor)),
-          el("div", { classe: "meta" }, `${FORMATOS[f.formato]} · ${precoTexto(f.preco)} · ${f.dominio} · ${haQuanto(f.criada)}`),
-        ),
-      ),
-    );
-    $("secao-recentes").hidden = false;
+    vitrine = (await api("vitrine", {})).livros;
   } catch {
-    // sem recentes, a seção fica escondida
+    vitrine = [];
   }
+  desenharCampo();
+  if (!$("q").value && !ultimaBusca) girar();
 }
 
 // ---------- vista: início · wishlist ----------
@@ -498,11 +571,20 @@ async function carregarWishlist(lerLivros) {
 
 function inicio() {
   $("inicio").hidden = false;
+  $("heroi").hidden = false;
 
+  // ↵ com a lacuna vazia abre o livro que ela está mostrando
   $("busca").addEventListener("submit", (e) => {
     e.preventDefault();
     const q = $("q").value.trim();
     if (q) buscarLivros(q);
+    else if (naLacuna().length) location.href = linkDoLivro(livroDaVez());
+  });
+  $("q").addEventListener("focus", pararDeGirar);
+  $("q").addEventListener("input", () => {
+    pararDeGirar();
+    // as pílulas falam do livro da lacuna; escrevendo, somem sem a dica pular de lugar
+    $("resposta").style.visibility = $("q").value ? "hidden" : "";
   });
 
   $("entrada").addEventListener("submit", (e) => {
@@ -537,7 +619,7 @@ function inicio() {
     buscarLivros(q);
   }
 
-  carregarRecentes();
+  carregarVitrine();
 }
 
 // ---------- qual vista ----------
